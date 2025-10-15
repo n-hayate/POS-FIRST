@@ -1,5 +1,3 @@
-# PowerShell
-@"
 # Dependencies
 node_modules/
 .pnp/
@@ -9,6 +7,7 @@ node_modules/
 .next/
 out/
 release/
+deploy/
 
 # Production
 build/
@@ -32,4 +31,3 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
-"@ | Out-File -FilePath frontend-repo\.gitignore -Encoding UTF8
