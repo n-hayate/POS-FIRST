@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import BarcodeScanner from '@/app/components/BarcodeScanner';
 import Notification from '@/app/components/Notification';
 import { searchProduct, purchaseItems } from '@/app/lib/api';
@@ -21,7 +21,6 @@ export default function PosPage() {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const [totalAmountExTax, setTotalAmountExTax] = useState(0);
-
 
   // 合計金額の計算
   useEffect(() => {
@@ -44,28 +43,23 @@ export default function PosPage() {
   // バーコードスキャン処理
   const handleScan = useCallback(async (result: string) => {
     setIsScannerOpen(false);
-    addLog(`スキャン: ${result}`);
     
     try {
-      addLog('商品検索中...');
       const data = await searchProduct(result);
       
       if (data && data.product) {
         const product = data.product;
-        addLog(`商品発見: ${product.prd_name} (${product.prd_price}円)`);
         showNotification(`「${product.prd_name}」を読み取りました`, 'success');
         setScannedProduct(product);
       } else {
-        addLog('商品が見つかりませんでした');
         showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
         setScannedProduct(null);
       }
     } catch (error: any) {
-      addLog(`[エラー] ${error.message}`);
       showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
       setScannedProduct(null);
     }
-  }, [addLog, showNotification]);
+  }, [showNotification]);
 
   // 商品を購入リストに追加
   const handleAddItem = useCallback(() => {
@@ -75,20 +69,18 @@ export default function PosPage() {
       const existingItem = prevList.find(item => item.prd_id === scannedProduct.prd_id);
 
       if (existingItem) {
-        addLog(`数量+1: ${scannedProduct.prd_name}`);
         return prevList.map(item =>
           item.prd_id === scannedProduct.prd_id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        addLog(`リスト追加: ${scannedProduct.prd_name}`);
         return [...prevList, { ...scannedProduct, quantity: 1 }];
       }
     });
 
     setScannedProduct(null);
-  }, [scannedProduct, addLog]);
+  }, [scannedProduct]);
 
   // 数量を増やす
   const handleIncreaseQuantity = useCallback((prd_id: number) => {
@@ -99,8 +91,7 @@ export default function PosPage() {
           : item
       )
     );
-    addLog(`数量+1: 商品ID ${prd_id}`);
-  }, [addLog]);
+  }, []);
 
   // 数量を減らす
   const handleDecreaseQuantity = useCallback((prd_id: number) => {
@@ -110,11 +101,9 @@ export default function PosPage() {
 
       if (item.quantity === 1) {
         // 数量が1の場合は削除
-        addLog(`リストから削除: 商品ID ${prd_id}`);
         return prevList.filter(i => i.prd_id !== prd_id);
       } else {
         // 数量を減らす
-        addLog(`数量-1: 商品ID ${prd_id}`);
         return prevList.map(i =>
           i.prd_id === prd_id
             ? { ...i, quantity: i.quantity - 1 }
@@ -122,13 +111,12 @@ export default function PosPage() {
         );
       }
     });
-  }, [addLog]);
+  }, []);
 
   // リストから商品を削除
   const handleRemoveItem = useCallback((prd_id: number) => {
     setPurchaseList(prevList => prevList.filter(item => item.prd_id !== prd_id));
-    addLog(`リストから削除: 商品ID ${prd_id}`);
-  }, [addLog]);
+  }, []);
 
   // 購入処理
   const handlePurchase = useCallback(async () => {
@@ -136,8 +124,6 @@ export default function PosPage() {
       showNotification('購入リストに商品がありません', 'error');
       return;
     }
-
-    addLog(`購入処理開始: ${purchaseList.length}種類の商品`);
 
     try {
       const purchaseData: PurchaseRequest = {
@@ -148,7 +134,6 @@ export default function PosPage() {
       };
 
       const data = await purchaseItems(purchaseData);
-      addLog(`購入成功: 合計${data.total_amount}円`);
 
       if (data.success) {
         showNotification(
@@ -161,10 +146,9 @@ export default function PosPage() {
         showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
       }
     } catch (error: any) {
-      addLog(`[購入エラー] ${error.message}`);
       showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
     }
-  }, [purchaseList, addLog, showNotification]);
+  }, [purchaseList, showNotification]);
 
   return (
     <div className="container mx-auto p-4 bg-gray-50 min-h-screen">
@@ -307,30 +291,6 @@ export default function PosPage() {
           </button>
         </div>
       </main>
-
-      <footer className="max-w-2xl mx-auto mt-4">
-        <button
-          onClick={() => setShowDebug(!showDebug)}
-          className="w-full text-sm text-gray-600 bg-gray-200 hover:bg-gray-300 py-2 px-4 rounded-lg transition-colors"
-        >
-          {showDebug ? '▲ デバッグログを隠す' : '▼ デバッグログを表示'}
-        </button>
-        {showDebug && (
-          <>
-            <div className="mt-2 p-4 bg-gray-800 text-green-400 rounded-lg text-xs font-mono whitespace-pre-wrap h-64 overflow-y-auto">
-              {logs.length > 0 ? logs.map((log, i) => (
-                <Fragment key={i}>{log}<br /></Fragment>
-              )) : "ログはありません"}
-            </div>
-            <button
-              onClick={() => setLogs([])}
-              className="w-full text-xs text-gray-500 hover:text-gray-700 mt-1"
-            >
-              ログをクリア
-            </button>
-          </>
-        )}
-      </footer>
     </div>
   );
 }
