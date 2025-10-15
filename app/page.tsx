@@ -21,13 +21,7 @@ export default function PosPage() {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const [totalAmountExTax, setTotalAmountExTax] = useState(0);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [showDebug, setShowDebug] = useState(false);
 
-  const addLog = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString('ja-JP');
-    setLogs(prev => [`[${timestamp}] ${message}`, ...prev].slice(0, 50));
-  }, []);
 
   // 合計金額の計算
   useEffect(() => {
