@@ -44,12 +44,7 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
         console.log('[カメラ起動] 成功');
       } catch (err) {
         console.error('[カメラ起動エラー]', err);
-        const message = err instanceof Error ? err.message : "不明なエラー";
-        alert(
-          `カメラの起動に失敗しました: ${message}\n\n` +
-          `• ブラウザのカメラアクセス許可を確認してください\n` +
-          `• このサイトはHTTPS接続である必要があります`
-        );
+        alert('エラーが発生しました。店員にお声掛けください。');
         onClose();
       }
     };
