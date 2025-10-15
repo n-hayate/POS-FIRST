@@ -65,10 +65,10 @@ export default function PosPage() {
           }
         });
       } else {
-        showNotification('商品が見つかりませんでした', 'error');
+        showNotification('商品が見つかりませんでした。店員にお声かけください', 'error');
       }
     } catch (error: any) {
-      showNotification('商品が見つかりませんでした', 'error');
+      showNotification('商品が見つかりませんでした。店員にお声かけください', 'error');
     }
   }, [showNotification]);
 
