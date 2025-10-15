@@ -126,9 +126,9 @@ export default function PosPage() {
       const data = await purchaseItems(purchaseData);
 
       if (data.success) {
-        showNotification(
-          `購入完了！ 合計: ${data.total_amount.toLocaleString()}円 (税抜: ${data.total_amount_ex_tax.toLocaleString()}円)`,
-          'success'
+        // ポップアップで合計金額を表示
+        alert(
+          `購入完了！\n\n合計金額（税込）: ${data.total_amount.toLocaleString()}円\n税抜: ${data.total_amount_ex_tax.toLocaleString()}円`
         );
         setPurchaseList([]);
       } else {
@@ -183,7 +183,10 @@ export default function PosPage() {
                     <div className="flex-1">
                       <p className="font-bold text-lg">{item.prd_name}</p>
                       <p className="text-sm text-gray-600">
-                        {item.prd_price.toLocaleString()}円
+                        コード: {item.prd_code}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        単価: {item.prd_price.toLocaleString()}円
                       </p>
                     </div>
                     <button
@@ -216,7 +219,7 @@ export default function PosPage() {
                     
                     <div className="text-right">
                       <p className="text-lg font-bold text-blue-600">
-                        {(item.prd_price * item.quantity).toLocaleString()}円
+                        小計: {(item.prd_price * item.quantity).toLocaleString()}円
                       </p>
                     </div>
                   </div>
@@ -230,6 +233,10 @@ export default function PosPage() {
 
         <div className="border-t-2 border-gray-200 pt-4">
           <div className="space-y-2 mb-4">
+            <div className="flex justify-between items-center text-2xl font-bold text-gray-800 pb-2 border-b border-gray-300">
+              <span>合計金額（税込）</span>
+              <span className="text-blue-600">{totalAmount.toLocaleString()}円</span>
+            </div>
             <div className="flex justify-between items-center text-lg text-gray-700">
               <span>小計（税抜）</span>
               <span>{totalAmountExTax.toLocaleString()}円</span>
@@ -237,10 +244,6 @@ export default function PosPage() {
             <div className="flex justify-between items-center text-lg text-gray-700">
               <span>消費税（10%）</span>
               <span>{(totalAmount - totalAmountExTax).toLocaleString()}円</span>
-            </div>
-            <div className="flex justify-between items-center text-2xl font-bold text-gray-800 pt-2 border-t border-gray-300">
-              <span>合計金額（税込）</span>
-              <span className="text-blue-600">{totalAmount.toLocaleString()}円</span>
             </div>
           </div>
           <button
