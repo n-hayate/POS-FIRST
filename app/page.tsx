@@ -15,7 +15,6 @@ const calculateExTaxPrice = (priceIncTax: number): number => {
 };
 
 export default function PosPage() {
-  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [purchaseList, setPurchaseList] = useState<PurchaseItem[]>([]);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -40,7 +39,7 @@ export default function PosPage() {
     setNotification({ message, type });
   }, []);
 
-  // バーコードスキャン処理
+  // バーコードスキャン処理（スキャンと同時にリストに追加）
   const handleScan = useCallback(async (result: string) => {
     setIsScannerOpen(false);
     
@@ -49,38 +48,29 @@ export default function PosPage() {
       
       if (data && data.product) {
         const product = data.product;
-        showNotification(`「${product.prd_name}」を読み取りました`, 'success');
-        setScannedProduct(product);
+        showNotification(`「${product.prd_name}」を追加しました`, 'success');
+        
+        // スキャンと同時に購入リストに追加
+        setPurchaseList(prevList => {
+          const existingItem = prevList.find(item => item.prd_id === product.prd_id);
+
+          if (existingItem) {
+            return prevList.map(item =>
+              item.prd_id === product.prd_id
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
+            );
+          } else {
+            return [...prevList, { ...product, quantity: 1 }];
+          }
+        });
       } else {
-        showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
-        setScannedProduct(null);
+        showNotification('商品が見つかりませんでした', 'error');
       }
     } catch (error: any) {
-      showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
-      setScannedProduct(null);
+      showNotification('商品が見つかりませんでした', 'error');
     }
   }, [showNotification]);
-
-  // 商品を購入リストに追加
-  const handleAddItem = useCallback(() => {
-    if (!scannedProduct) return;
-
-    setPurchaseList(prevList => {
-      const existingItem = prevList.find(item => item.prd_id === scannedProduct.prd_id);
-
-      if (existingItem) {
-        return prevList.map(item =>
-          item.prd_id === scannedProduct.prd_id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        return [...prevList, { ...scannedProduct, quantity: 1 }];
-      }
-    });
-
-    setScannedProduct(null);
-  }, [scannedProduct]);
 
   // 数量を増やす
   const handleIncreaseQuantity = useCallback((prd_id: number) => {
@@ -141,7 +131,6 @@ export default function PosPage() {
           'success'
         );
         setPurchaseList([]);
-        setScannedProduct(null);
       } else {
         showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
       }
@@ -182,28 +171,6 @@ export default function PosPage() {
           </button>
         </div>
 
-        {scannedProduct && (
-          <div className="mb-6 p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
-            <h2 className="text-xl font-bold text-gray-700 mb-3">スキャンした商品</h2>
-            <div className="space-y-2">
-              <p className="text-lg"><span className="font-semibold">コード:</span> {scannedProduct.prd_code}</p>
-              <p className="text-lg"><span className="font-semibold">商品名:</span> {scannedProduct.prd_name}</p>
-              <p className="text-lg">
-                <span className="font-semibold">価格:</span> {scannedProduct.prd_price.toLocaleString()}円
-                <span className="text-sm text-gray-600 ml-2">
-                  (税抜: {calculateExTaxPrice(scannedProduct.prd_price).toLocaleString()}円)
-                </span>
-              </p>
-            </div>
-            <button
-              onClick={handleAddItem}
-              className="w-full mt-4 bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors active:scale-95"
-            >
-              ➕ 追加
-            </button>
-          </div>
-        )}
-
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-gray-200 pb-2 mb-4">
             購入リスト
@@ -217,9 +184,6 @@ export default function PosPage() {
                       <p className="font-bold text-lg">{item.prd_name}</p>
                       <p className="text-sm text-gray-600">
                         {item.prd_price.toLocaleString()}円
-                        <span className="ml-2">
-                          (税抜: {calculateExTaxPrice(item.prd_price).toLocaleString()}円)
-                        </span>
                       </p>
                     </div>
                     <button
@@ -254,9 +218,6 @@ export default function PosPage() {
                       <p className="text-lg font-bold text-blue-600">
                         {(item.prd_price * item.quantity).toLocaleString()}円
                       </p>
-                      <p className="text-sm text-gray-600">
-                        税抜: {(calculateExTaxPrice(item.prd_price) * item.quantity).toLocaleString()}円
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -278,7 +239,7 @@ export default function PosPage() {
               <span>{(totalAmount - totalAmountExTax).toLocaleString()}円</span>
             </div>
             <div className="flex justify-between items-center text-2xl font-bold text-gray-800 pt-2 border-t border-gray-300">
-              <span>合計金額</span>
+              <span>合計金額（税込）</span>
               <span className="text-blue-600">{totalAmount.toLocaleString()}円</span>
             </div>
           </div>
