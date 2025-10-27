@@ -20,6 +20,7 @@ export default function PosPage() {
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [totalAmount, setTotalAmount] = useState(0);
   const [totalAmountExTax, setTotalAmountExTax] = useState(0);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   // 合計金額の計算
   useEffect(() => {
@@ -43,6 +44,11 @@ export default function PosPage() {
   const handleScan = useCallback(async (result: string) => {
     setIsScannerOpen(false);
     
+    if (!result || result.trim() === '') {
+      showNotification('バーコードを読み取れませんでした', 'error');
+      return;
+    }
+    
     try {
       const data = await searchProduct(result);
       
@@ -65,10 +71,11 @@ export default function PosPage() {
           }
         });
       } else {
-        showNotification('商品が見つかりませんでした。店員にお声かけください', 'error');
+        showNotification('商品が見つかりませんでした。店員にお声掛けください', 'error');
       }
     } catch (error: any) {
-      showNotification('商品が見つかりませんでした。店員にお声かけください', 'error');
+      console.error('[商品検索エラー]', error);
+      showNotification('商品の検索に失敗しました。店員にお声掛けください', 'error');
     }
   }, [showNotification]);
 
@@ -115,6 +122,8 @@ export default function PosPage() {
       return;
     }
 
+    setIsPurchasing(true);
+
     try {
       const purchaseData: PurchaseRequest = {
         emp_cd: "",
@@ -131,11 +140,15 @@ export default function PosPage() {
           `購入完了！\n\n合計金額（税込）: ${data.total_amount.toLocaleString()}円\n税抜: ${data.total_amount_ex_tax.toLocaleString()}円`
         );
         setPurchaseList([]);
+        showNotification('購入が完了しました', 'success');
       } else {
-        showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
+        showNotification('購入処理に失敗しました。店員にお声掛けください', 'error');
       }
     } catch (error: any) {
-      showNotification('エラーが発生しました。店員にお声掛けください。', 'error');
+      console.error('[購入エラー]', error);
+      showNotification('購入処理中にエラーが発生しました。店員にお声掛けください', 'error');
+    } finally {
+      setIsPurchasing(false);
     }
   }, [purchaseList, showNotification]);
 
@@ -249,9 +262,9 @@ export default function PosPage() {
           <button
             onClick={handlePurchase}
             className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-colors text-xl shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed active:scale-95"
-            disabled={purchaseList.length === 0}
+            disabled={purchaseList.length === 0 || isPurchasing}
           >
-            💳 購入
+            {isPurchasing ? '処理中...' : '💳 購入'}
           </button>
         </div>
       </main>
