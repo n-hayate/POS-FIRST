@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 
 interface BarcodeScannerProps {
@@ -9,9 +9,12 @@ interface BarcodeScannerProps {
 }
 
 export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
   useEffect(() => {
     let html5QrCode: Html5Qrcode | undefined;
-    let isScanning = false;
+    let scanLock = false;
 
     const startScanner = async () => {
       try {
@@ -25,27 +28,47 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
           },
           (decodedText) => {
             // 連続スキャン防止
-            if (!isScanning) {
-              isScanning = true;
+            if (!scanLock) {
+              scanLock = true;
               console.log('[バーコード読取] ', decodedText);
+              setIsScanning(true);
               onScan(decodedText);
               
               // 1秒後に再度スキャン可能にする
               setTimeout(() => {
-                isScanning = false;
+                scanLock = false;
+                setIsScanning(false);
               }, 1000);
             }
           },
           (errorMessage) => {
             // スキャン中のエラーは無視（正常動作）
+            // ただし、重大なエラーはログに記録
+            if (errorMessage.includes('NotAllowedError')) {
+              setError('カメラへのアクセスが拒否されました');
+            }
           }
         );
         
         console.log('[カメラ起動] 成功');
-      } catch (err) {
+      } catch (err: any) {
         console.error('[カメラ起動エラー]', err);
-        alert('エラーが発生しました。店員にお声掛けください。');
-        onClose();
+        
+        // エラーメッセージを判定
+        if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+          setError('カメラへのアクセスが許可されていません。ブラウザの設定を確認してください。');
+        } else if (err.name === 'NotFoundError') {
+          setError('カメラが見つかりませんでした。デバイスにカメラが接続されているか確認してください。');
+        } else if (err.name === 'NotReadableError') {
+          setError('カメラがすでに使用中です。他のアプリを閉じてから再度お試しください。');
+        } else {
+          setError('カメラの起動に失敗しました。店員にお声掛けください。');
+        }
+        
+        // 3秒後に自動で閉じる
+        setTimeout(() => {
+          onClose();
+        }, 3000);
       }
     };
 
@@ -67,6 +90,20 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
         <h3 className="text-xl font-bold mb-4 text-center text-gray-800">
           📷 バーコードをスキャン
         </h3>
+        
+        {error ? (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
+            <p className="font-bold">エラー</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        ) : null}
+        
+        {isScanning && (
+          <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4" role="alert">
+            <p className="text-sm">読み取り中...</p>
+          </div>
+        )}
+        
         <div 
           id="reader" 
           className="w-full aspect-square rounded-lg overflow-hidden border-2 border-blue-300 bg-gray-100"
